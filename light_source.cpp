@@ -24,6 +24,8 @@ void PointLight::shade( Ray3D& ray ) {
 	Colour KA = (*ray.intersection.mat).ambient;
 	Colour KD = (*ray.intersection.mat).diffuse;
 	Colour KS = (*ray.intersection.mat).specular;
+
+
 	double alpha = (*ray.intersection.mat).specular_exp;
 
 	Colour IA = _col_ambient;
@@ -48,6 +50,11 @@ void PointLight::shade( Ray3D& ray ) {
 	double max2 = fmax(0.0, vr_alpha);
 
 	Colour shade = KA * IA + KD * (max1 * ID) + KS * (max2 * IS);
+
+	if (ray.inShadow) {
+		shade = KA*IA;
+	}
+
 	shade.clamp();
 	ray.col = shade;
 

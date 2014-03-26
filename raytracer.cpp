@@ -186,10 +186,28 @@ void Raytracer::computeShading( Ray3D& ray ) {
 		if (curLight == NULL) break;
 		// Each lightSource provides its own shading function.
 
+
+		/** Start basic shadow implementation **/
 		// Implement shadows here if needed.
+		Ray3D shadowRay;
+
+		shadowRay.dir = (curLight->light->get_position() - ray.intersection.point);
+		shadowRay.dir.normalize();
+
+		shadowRay.origin = ray.intersection.point;
+		shadowRay.origin = shadowRay.origin + 0.01*shadowRay.dir;
+
+		traverseScene(_root, shadowRay);
+		if (!shadowRay.intersection.none) {
+			ray.inShadow = true;
+		}
+
+		/** End basic shadow implementation **/
 
 		curLight->light->shade(ray);
 		curLight = curLight->next;
+		ray.inShadow = false;
+
 	}
 }
 
@@ -214,7 +232,7 @@ void Raytracer::flushPixelBuffer( char *file_name ) {
 	delete _bbuffer;
 }
 
-Colour Raytracer::shadeRay( Ray3D& ray ) {
+Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 	Colour col(0.0, 0.0, 0.0);
 	traverseScene(_root, ray);
 
@@ -225,8 +243,41 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 		col = ray.col;
 	}
 
+	int maxDepth = 5;
+
 	// You'll want to call shadeRay recursively (with a different ray,
 	// of course) here to implement reflection/refraction effects.
+	/* Reflection Code starts here */
+
+	// SceneDagNode *nextNode = node->next;
+	if (!ray.intersection.none && depth < maxDepth) {
+
+		Ray3D reflectionRay;
+
+		Vector3D rayNormal = ray.intersection.normal;
+		rayNormal.normalize();
+
+		Vector3D rayDir = ray.dir;
+		rayDir.normalize();
+
+		reflectionRay.dir =
+			(rayDir - (2*(rayDir.dot(rayNormal))*rayNormal));
+		reflectionRay.dir.normalize();
+
+		reflectionRay.origin = ray.intersection.point;
+		reflectionRay.origin = reflectionRay.origin + 0.01*reflectionRay.dir;
+
+		if (ray.intersection.mat->damp_factor > 0) {
+			// std::cout << "Incoming: " << ray.dir << std::endl;
+			// std::cout << "Normal" << ray.intersection.normal << std::endl;
+			// std::cout << "Outgoing: " << reflectionRay.intersection.normal << std::endl;
+			col = col + ray.intersection.mat->damp_factor*shadeRay(reflectionRay, depth+1);
+			col.clamp();
+		}
+
+	}
+
+	/* Reflection Code ends here */
 
 	return col;
 }
@@ -257,14 +308,11 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 
 			Ray3D ray;
 
-			/* Natasha */
 
 			ray.origin = viewToWorld * origin;
 			ray.dir = viewToWorld*imagePlane - eye;
 
-			/* End Natasha */
-
-			Colour col = shadeRay(ray);
+			Colour col = shadeRay(ray, 0);
 
 			_rbuffer[i*width+j] = int(col[0]*255);
 			_gbuffer[i*width+j] = int(col[1]*255);
@@ -275,21 +323,10 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	flushPixelBuffer(fileName);
 }
 
-int main(int argc, char* argv[])
-{
-	// Build your scene and setup your camera here, by calling
-	// functions from Raytracer.  The code here sets up an example
-	// scene and renders it from two different view points, DO NOT
-	// change this if you're just implementing part one of the
-	// assignment.
-	Raytracer raytracer;
-	int width = 320;
-	int height = 240;
+/* Draws the original scene.. Egg on plane */
+void drawOriginalScene(int width, int height) {
 
-	if (argc == 3) {
-		width = atoi(argv[1]);
-		height = atoi(argv[2]);
-	}
+	Raytracer raytracer;
 
 	// Camera parameters.
 	Point3D eye(0, 0, 1);
@@ -300,10 +337,14 @@ int main(int argc, char* argv[])
 	// Defines a material for shading.
 	Material gold( Colour(0.3, 0.3, 0.3), Colour(0.75164, 0.60648, 0.22648),
 			Colour(0.628281, 0.555802, 0.366065),
-			51.2 );
+			51.2, 1.0);
+	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
+			Colour(0, 0, 0),
+			51.2, 1.0);
 	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
 			Colour(0.316228, 0.316228, 0.316228),
-			12.8 );
+			12.8, 0.0 );
+
 
 	// Defines a point light source.
 	raytracer.addLightSource( new PointLight(Point3D(0, 0, 5),
@@ -316,13 +357,14 @@ int main(int argc, char* argv[])
 	// Apply some transformations to the unit square.
 	double factor1[3] = { 1.0, 2.0, 1.0 };
 	double factor2[3] = { 6.0, 6.0, 6.0 };
+
 	raytracer.translate(sphere, Vector3D(0, 0, -5));
 	raytracer.rotate(sphere, 'x', -45);
 	raytracer.rotate(sphere, 'z', 45);
 	raytracer.scale(sphere, Point3D(0, 0, 0), factor1);
 
 	raytracer.translate(plane, Vector3D(0, 0, -7));
-	raytracer.rotate(plane, 'z', 45);
+	raytracer.rotate(plane, 'z', 40);
 	raytracer.scale(plane, Point3D(0, 0, 0), factor2);
 
 	// Render the scene, feel free to make the image smaller for
@@ -333,6 +375,156 @@ int main(int argc, char* argv[])
 	Point3D eye2(4, 2, 1);
 	Vector3D view2(-4, -2, -6);
 	raytracer.render(width, height, eye2, view2, up, fov, "view2.bmp");
+}
+
+void drawNewScene(int width, int height) {
+	Raytracer raytracer;
+
+	// Camera parameters.
+	Point3D eye(0, 0, 1);
+	Vector3D view(0, 0, -1);
+	Vector3D up(0, 1, 0);
+	double fov = 60;
+
+	//208, 32, 144
+	// Defines a material for shading.
+	Material gold( Colour(0.3, 0.3, 0.3), Colour(0.75164, 0.60648, 0.22648),
+			Colour(0.628281, 0.555802, 0.366065),
+			51.2, 0.0 );
+	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
+			Colour(0.316228, 0.316228, 0.316228),
+			12.8, 0 );
+	Material pink( Colour(0.815, 0.125, 0.56), Colour(0.6, 0.5, 0.5),
+			Colour(0.6, 0.6, 0.6), 30, 0.0);
+	Material blue( Colour(0.27, 0.5, 0.7), Colour(0.6, 0.5, 0.5),
+			Colour(0.316228, 0.316228, 0.316228), 12, 0.0);
+	Material silver( Colour(0.19225,0.19225,0.19225), Colour(0.50754, 0.50754, 0.50754),
+					Colour(0.508273, 0.508273, 0.508273), 51.2, 1.0);
+	Material chrome( Colour(.25,0.25,0.25), Colour(0.4,0.4,0.4),
+					 Colour(0.774597,0.774597,0.774597), 76.8, 0.0);
+	Material brass ( Colour(0.329412,0.223529,0.027451), Colour(0.780392,0.568627,0.113725),
+					 Colour(0.992157, 0.941176, 0.807843), 27.89743616, 1.0);
+	// Material white( Colour(0.8,0.7,0.7), Colour(0.5,0.5,0.4), Colour(0.7,0.7,0.04), 10, 0);
+	Material white( Colour(0,0,0), Colour(0.55,0.55,0.55), Colour(0.7,0.7,0.7), 32, 0.0);
+	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
+			Colour(0, 0, 0),
+			51.2, 0.75);
+
+	// Defines a point light source.
+	raytracer.addLightSource( new PointLight(Point3D(1,1,3),
+				Colour(0.9, 0.9, 0.9) ) );
+
+	// Add a unit square into the scene with material mat.
+	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &brass );
+	SceneDagNode* sphere2 = raytracer.addObject( new UnitSphere(), &black );
+	SceneDagNode* planeL = raytracer.addObject( new UnitSquare(), &jade );
+	SceneDagNode* planeR = raytracer.addObject( new UnitSquare(), &jade );
+	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &pink);
+	SceneDagNode* planeB = raytracer.addObject( new UnitSquare(), &white );
+
+
+	// Apply some transformations to the unit square.
+	double factor1[3] = { 0.2, 0.2, 0.2 };
+	double factor2[3] = { 6.0, 6.0, 6.0 };
+	double factor3[3] = { 0.15, 0.15, 0.15 };
+
+	raytracer.translate(sphere1, Vector3D(0.1, -0.5, -0.2));
+	raytracer.scale(sphere1, Point3D(0, 0, 0), factor1);
+
+	raytracer.translate(sphere2, Vector3D(-0.2, -0.5, -0.7));
+	raytracer.scale(sphere2, Point3D(0, 0, 0), factor3);
+
+	raytracer.translate(planeL, Vector3D(-3, 0, -6));
+	raytracer.rotate(planeL, 'y', 90);
+	raytracer.scale(planeL, Point3D(0, 0, 0), factor2);
+
+	raytracer.translate(planeR, Vector3D(3, 0, -6));
+	raytracer.rotate(planeR, 'y', -90);
+	raytracer.scale(planeR, Point3D(0, 0, 0), factor2);
+
+	raytracer.translate(planeT, Vector3D(0, -3, -6));
+	raytracer.rotate(planeT, 'x', 90);
+	raytracer.scale(planeT, Point3D(0, 0, 0), factor2);
+
+	raytracer.translate(planeB, Vector3D(0, 0, -9));
+	raytracer.scale(planeB, Point3D(0, 0, 0), factor2);
+
+
+	// Render the scene, feel free to make the image smaller for
+	// testing purposes.
+	raytracer.render(width, height, eye, view, up, fov, "view3.bmp");
+
+	// // Render it from a different point of view.
+	// Point3D eye2(4, 2, 1);
+	// Vector3D view2(-4, -2, -6);
+	// raytracer.render(width, height, eye2, view2, up, fov, "view3.bmp");
+}
+
+void drawBasicScene(int width, int height) {
+	Raytracer raytracer;
+
+	// Camera parameters.
+	Point3D eye(0, 0, 1);
+	Vector3D view(0, 0, -1);
+	Vector3D up(0, 1, 0);
+	double fov = 60;
+
+	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
+			Colour(0, 0, 0),
+			12, 0.5);
+	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
+			Colour(0.316228, 0.316228, 0.316228),
+			12.8, 0 );
+
+	Material silver( Colour(0.19225,0.19225,0.19225), Colour(0.50754, 0.50754, 0.50754),
+					Colour(0.508273, 0.508273, 0.508273), 51.2, 1.0);
+
+	double factor2[3] = { 6.0, 6.0, 6.0 };
+	double factor3[3] = { 0.15, 0.15, 0.15 };
+
+	// Defines a point light source.
+	raytracer.addLightSource( new PointLight(Point3D(1, 3, 3),
+				Colour(0.9, 0.9, 0.9) ) );
+
+	// Add a unit square into the scene with material mat.
+	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &black);
+	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &jade );
+
+	raytracer.rotate(planeT, 'x', -80);
+	raytracer.translate(planeT, Vector3D(0, 0, 0));
+	raytracer.scale(planeT, Point3D(0, 0, 0), factor2);
+
+	raytracer.translate(sphere1, Vector3D(0, 0.0, 0.6));
+	raytracer.scale(sphere1, Point3D(0, 0, 0), factor3);
+
+	// Point3D eye2(4, 2, 1);
+	// Vector3D view2(-4, -2, -6);
+	// raytracer.render(width, height, eye2, view2, up, fov, "reflection2.bmp");
+	raytracer.render(width, height, eye, view, up, fov, "reflections.bmp");
+
+}
+
+
+int main(int argc, char* argv[])
+{
+	// Build your scene and setup your camera here, by calling
+	// functions from Raytracer.  The code here sets up an example
+	// scene and renders it from two different view points, DO NOT
+	// change this if you're just implementing part one of the
+	// assignment.
+	int width = 320;
+	int height = 240;
+
+	if (argc == 3) {
+		width = atoi(argv[1]);
+		height = atoi(argv[2]);
+	}
+
+
+	// drawOriginalScene(width, height);
+	drawNewScene(width, height);
+	// drawBasicScene(width, height);
+
 
 	return 0;
 }

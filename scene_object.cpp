@@ -27,6 +27,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// to simplify the intersection test.
 	Point3D origin = worldToModel * ray.origin;
 	Vector3D dir = worldToModel * ray.dir;
+	// dir.normalize();
 
 	double t = -origin[2]/dir[2];
 
@@ -52,6 +53,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 			ray.intersection.t_value = t;
 			ray.intersection.point = modelToWorld * intersectionPoint;
+			intersectionNormal.normalize();
 			ray.intersection.normal = intersectionNormal;
 			ray.intersection.none = false;
 
@@ -77,38 +79,56 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 	Point3D origin = worldToModel * ray.origin;
 	Vector3D dir = worldToModel * ray.dir;
+	// dir.normalize();
 
 	Point3D center(0,0,0);
 	double radius = 1;
 
 	double a = dir.dot(dir);
-	double b = (2*(origin - center)).dot(dir);
-	double c = ((origin-center).dot((origin-center)) - radius*radius);
+	double b = (origin - center).dot(dir);
+	double c = (origin - center).dot(origin - center) - radius*radius;
 
-	double discriminant = (b*b) - (4*a*c);
+	double discriminant = (b*b) - (a*c);
 
 	if (discriminant < 0) {
 		return false;
 	}
 
-	double t0 = (-b - sqrt(discriminant))/(2*a);
-	double t1 = (-b + sqrt(discriminant))/(2*a);
+	double t0 = -b/a - sqrt(discriminant)/a;
+	double t1 = -b/a + sqrt(discriminant)/a;
 	double t = t0;
 
-	if (t0 > t1) {
-		//ensure that t0 is smaller.
-		double temp = t0;
-		t0 = t1;
-		t1 = temp;
-	}
-
-	if (t1 < 0) {
+	if (t0 < 0 && t1 < 0) {
 		return false;
 	}
 
-	if (t0 < 0) {
+	if (t0 > 0 && t1 < 0) {
+		t = t0;
+	}
+
+	if (t0 > t1 && t1 > 0) {
 		t = t1;
 	}
+
+
+	// double t = t0;
+
+	// if (t0 > t1) {
+	// 	//ensure that t0 is smaller.
+	// 	double temp = t0;
+	// 	t0 = t1;
+	// 	t1 = temp;
+	// }
+
+	// // t0 < t1
+
+	// if (t1 < 0) {
+	// 	return false;
+	// }
+
+	// if (t0 < 0) {
+	// 	t = t1;
+	// }
 
 	if (ray.intersection.none ||
 		t < ray.intersection.t_value) {
@@ -123,6 +143,7 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 		Vector3D intersectionNormal = transNorm(
 											worldToModel,
 											Vector3D(2*x, 2*y, 2*z));
+		// intersectionNormal.normalize();
 
 		ray.intersection.t_value = t;
 		ray.intersection.point = modelToWorld * intersectionPoint;
