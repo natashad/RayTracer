@@ -16,6 +16,7 @@
 #include <cmath>
 #include <iostream>
 #include <cstdlib>
+#include <sstream>
 
 Raytracer::Raytracer() : _lightSource(NULL) {
 	_root = new SceneDagNode();
@@ -292,27 +293,59 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	initPixelBuffer();
 	viewToWorld = initInvViewMatrix(eye, view, up);
 
+	bool antiAliasing = true;
+
+	double numSamples = 4;
+
 	// Construct a ray for each pixel.
 	for (int i = 0; i < _scrHeight; i++) {
 		for (int j = 0; j < _scrWidth; j++) {
-			// Sets up ray origin and direction in view space,
-			// image plane is at z = -1.
-			Point3D origin(0, 0, 0);
-			Point3D imagePlane;
-			imagePlane[0] = (-double(width)/2 + 0.5 + j)/factor;
-			imagePlane[1] = (-double(height)/2 + 0.5 + i)/factor;
-			imagePlane[2] = -1;
 
-			// TODO: Convert ray to world space and call
-			// shadeRay(ray) to generate pixel colour.
+			Colour col(0,0,0);
 
-			Ray3D ray;
+			if (!antiAliasing) {
+				Point3D origin(0, 0, 0);
+				Point3D imagePlane;
+				imagePlane[0] = (-double(width)/2 + 0.5 + j)/factor;
+				imagePlane[1] = (-double(height)/2 + 0.5 + i)/factor;
+				imagePlane[2] = -1;
 
+				Ray3D ray;
+				ray.origin = viewToWorld * origin;
+				ray.dir = viewToWorld*imagePlane - eye;
 
-			ray.origin = viewToWorld * origin;
-			ray.dir = viewToWorld*imagePlane - eye;
+				col = shadeRay(ray, 0);
 
-			Colour col = shadeRay(ray, 0);
+				_rbuffer[i*width+j] = int(col[0]*255);
+				_gbuffer[i*width+j] = int(col[1]*255);
+				_bbuffer[i*width+j] = int(col[2]*255);
+
+			} else {
+
+				for (double x = 0; x < numSamples; ++x) {
+					double distx = (x+ 1.0*rand()/RAND_MAX)/numSamples;
+					double disty = (x+ 1.0*rand()/RAND_MAX)/numSamples;
+
+					// Sets up ray origin and direction in view space,
+					// image plane is at z = -1.
+					Point3D origin(0, 0, 0);
+					Point3D imagePlane;
+					imagePlane[0] = (-double(width)/2 + distx + j)/factor;
+					imagePlane[1] = (-double(height)/2 + disty + i)/factor;
+					imagePlane[2] = -1;
+
+					Ray3D ray;
+					ray.origin = viewToWorld * origin;
+					ray.dir = viewToWorld*imagePlane - eye;
+
+					col = col + shadeRay(ray, 0);
+
+				}
+
+				col = (1/(numSamples*1.0))*col;
+
+			}
+
 
 			_rbuffer[i*width+j] = int(col[0]*255);
 			_gbuffer[i*width+j] = int(col[1]*255);
@@ -419,7 +452,7 @@ void drawNewScene(int width, int height) {
 	SceneDagNode* sphere2 = raytracer.addObject( new UnitSphere(), &black );
 	SceneDagNode* planeL = raytracer.addObject( new UnitSquare(), &jade );
 	SceneDagNode* planeR = raytracer.addObject( new UnitSquare(), &jade );
-	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &pink);
+	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &blue);
 	SceneDagNode* planeB = raytracer.addObject( new UnitSquare(), &white );
 
 
@@ -521,9 +554,10 @@ int main(int argc, char* argv[])
 	}
 
 
-	// drawOriginalScene(width, height);
+
+	drawOriginalScene(width, height);
 	drawNewScene(width, height);
-	// drawBasicScene(width, height);
+	drawBasicScene(width, height);
 
 
 	return 0;
