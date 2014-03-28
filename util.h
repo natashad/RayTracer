@@ -172,6 +172,8 @@ struct Material {
 struct Intersection {
 	// Location of intersection.
 	Point3D point;
+
+	Point3D untransformedPoint;
 	// Normal at the intersection.
 	Vector3D normal;
 	// Material at the intersection.
@@ -183,6 +185,7 @@ struct Intersection {
 	double t_value;
 	// Set to true when no intersection has occured.
 	bool none;
+
 };
 
 // Ray structure.

@@ -32,6 +32,32 @@ void PointLight::shade( Ray3D& ray ) {
 	Colour ID = _col_diffuse;
 	Colour IS = _col_specular;
 
+
+	// std::cout << ray.intersection.untransformedPoint
+
+	double x = 0;
+	double y = 0;
+	x = ray.intersection.untransformedPoint[0]+1;
+	y = ray.intersection.untransformedPoint[1]+1;
+
+	x*=1000;
+	y*=1000;
+
+	// std::cout << x << "," << y << std::endl;
+	if ((int)x/20 % 2 == (int)y/20 % 2) {
+		KA = (*ray.intersection.mat).ambient2;
+		KD = (*ray.intersection.mat).diffuse2;
+		KS = (*ray.intersection.mat).specular2;
+	}
+
+
+	if (ray.inShadow) {
+		Colour shade = KA*IA;
+		shade.clamp();
+		ray.col = shade;
+		return;
+	}
+
 	Vector3D N = (ray.intersection.normal);
 	N.normalize();
 
@@ -51,9 +77,7 @@ void PointLight::shade( Ray3D& ray ) {
 
 	Colour shade = KA * IA + KD * (max1 * ID) + KS * (max2 * IS);
 
-	if (ray.inShadow) {
-		shade = KA*IA;
-	}
+
 
 	shade.clamp();
 	ray.col = shade;

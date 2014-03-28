@@ -33,7 +33,10 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 	Point3D origin = worldToModel * ray.origin;
 	Vector3D dir = worldToModel * ray.dir;
+	// dir.normalize();
 	Ray3D ray_obj = Ray3D(origin, dir);
+
+	ray.intersection.untransformedPoint = Point3D(0,0,0);
 
 	double t = -ray_obj.origin[2]/ray_obj.dir[2];
 
@@ -45,6 +48,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	double x = ray_obj.origin[0] + t * ray_obj.dir[0];
 	double y = ray_obj.origin[1] + t * ray_obj.dir[1];
 	Point3D intersectionPoint = Point3D(x,y,0);
+	ray.intersection.untransformedPoint = intersectionPoint;
 
 	//Intersecion
 	if ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))
@@ -77,7 +81,10 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	Point3D origin = Point3D(0,0,0);
 	Point3D ray_origin = worldToModel * ray.origin;
 	Vector3D ray_dir = worldToModel * ray.dir;
+	// ray_dir.normalize();
 	Ray3D ray_obj = Ray3D(ray_origin, ray_dir);
+
+	ray.intersection.untransformedPoint = Point3D(0,0,0);
 
 	double A = ray_dir.dot(ray_dir);
 	double B = (ray_origin - origin).dot(ray_dir);
