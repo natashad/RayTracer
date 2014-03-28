@@ -129,9 +129,18 @@ Colour operator +(const Colour& u, const Colour& v);
 std::ostream& operator <<(std::ostream& o, const Colour& c);
 
 struct Material {
-	Material( Colour ambient, Colour diffuse, Colour specular, double exp, double damp ) :
+	Material( Colour ambient, Colour diffuse, Colour specular, double exp, double damp, double trans );
+		// ambient(ambient), diffuse(diffuse), specular(specular),
+		// specular_exp(exp), damp_factor(damp), ref_index(trans) {}
+
+	Material( Colour ambient, Colour diffuse, Colour specular, double exp,
+				double damp, double trans,
+				Colour ambient2, Colour diffuse2, Colour specular2, double exp2,
+				double damp2, double trans2 ) :
 		ambient(ambient), diffuse(diffuse), specular(specular),
-		specular_exp(exp), damp_factor(damp) {}
+		specular_exp(exp), damp_factor(damp), ref_index(trans),
+		ambient2(ambient2), diffuse2(diffuse2), specular2(specular2),
+		specular_exp2(exp2), damp_factor2(damp2), ref_index2(trans2) {}
 
 	// Ambient components for Phong shading.
 	Colour ambient;
@@ -143,6 +152,21 @@ struct Material {
 	double specular_exp;
 
 	double damp_factor;
+
+	double ref_index;
+
+	// Ambient components for Phong shading.
+	Colour ambient2;
+	// Diffuse components for Phong shading.
+	Colour diffuse2;
+	// Specular components for Phong shading.
+	Colour specular2;
+	// Specular expoent.
+	double specular_exp2;
+
+	double damp_factor2;
+
+	double ref_index2;
 };
 
 struct Intersection {

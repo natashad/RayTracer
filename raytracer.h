@@ -15,6 +15,13 @@
 #include "scene_object.h"
 #include "light_source.h"
 
+
+const bool REFLECTION_ON = true;
+const bool ANTIALIAS_ON = false;
+const bool REFRACTION_ON = false;
+const bool SHADOWS = true;
+const bool GLOSSY_REFLECTION_ON = false;
+
 // Linked list containing light sources in the scene.
 struct LightListNode {
 	LightListNode() : light(NULL), next(NULL) {}
