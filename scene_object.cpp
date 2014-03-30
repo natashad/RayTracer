@@ -33,34 +33,56 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 	Point3D origin = worldToModel * ray.origin;
 	Vector3D dir = worldToModel * ray.dir;
-	// dir.normalize();
-	Ray3D ray_obj = Ray3D(origin, dir);
 
+	return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, true, 0);
+
+}
+
+bool doPlaneIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
+		const Matrix4x4& modelToWorld, Point3D o, Vector3D d, bool alongz, int plane_intersection_val) {
+
+	Point3D origin = o;
+	Vector3D dir = d;
 	ray.intersection.untransformedPoint = Point3D(0,0,0);
 
-	double t = -ray_obj.origin[2]/ray_obj.dir[2];
+	int axis = 1;
+	int plane_axis = 2;
+	Vector3D ray_normal = Vector3D(0, 0, 1);
+
+	if (!alongz) {
+		axis = 2;
+		plane_axis = 1;
+		ray_normal = Vector3D(0, 1, 0);
+	}
+
+	double t = (plane_intersection_val - origin[plane_axis])/dir[plane_axis];
 
 	if (t <= 0){
 		// the intersection must occur in the given directions
 		return false;
 	}
-	Vector3D ray_normal = Vector3D(0, 0, 1);
-	double x = ray_obj.origin[0] + t * ray_obj.dir[0];
-	double y = ray_obj.origin[1] + t * ray_obj.dir[1];
-	Point3D intersectionPoint = Point3D(x,y,0);
+	double x = origin[0] + t * dir[0];
+	double y = origin[axis] + t * dir[axis];
+	Point3D intersectionPoint = Point3D(x,y,plane_intersection_val);
+	if (!alongz) {
+		intersectionPoint = Point3D(x,plane_intersection_val,y);
+	}
 	ray.intersection.untransformedPoint = intersectionPoint;
 
 	//Intersecion
-	if ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))
-	{
-		if (ray.intersection.none || (t < ray.intersection.t_value))
-		{
-			ray.intersection.t_value = t;
-			ray.intersection.point = modelToWorld * intersectionPoint;
-			ray.intersection.normal = transNorm(worldToModel, ray_normal);
-			ray.intersection.none = false;
-			return true;
-		}
+	if ((alongz && ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))) ||
+		(!alongz && x*x + y*y <= 1)) {
+
+			if (ray.intersection.none || (t < ray.intersection.t_value))
+
+			{
+				ray.intersection.t_value = t;
+				ray.intersection.point = modelToWorld * intersectionPoint;
+				ray.intersection.normal = transNorm(worldToModel, ray_normal);
+				ray.intersection.normal.normalize();
+				ray.intersection.none = false;
+				return true;
+			}
 
 	}
 
@@ -115,6 +137,7 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 			ray.intersection.t_value = lambda2;
 			ray.intersection.point = modelToWorld * intersection_point;
 			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
 			ray.intersection.none = false;
 			return true;
 		}
@@ -130,6 +153,7 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 			ray.intersection.t_value = lambda1;
 			ray.intersection.point = modelToWorld * intersection_point;
 			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
 			ray.intersection.none = false;
 
 			return true;
@@ -140,8 +164,89 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	return false;
 }
 
-// bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
-// 		const Matrix4x4& modelToWorld ) {
+bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
+		const Matrix4x4& modelToWorld ) {
 
-// }
+	Point3D origin = worldToModel * ray.origin;
+	Vector3D dir = worldToModel * ray.dir;
+
+	double A = dir[0]*dir[0] + dir[2]*dir[2];
+	double B = origin[0]*dir[0] + origin[2] * dir[2];
+	double C = origin[0] * origin[0] + origin[2] * origin[2] - 1;
+
+	double discrim = B*B-A*C;
+
+	if (discrim < 0) {
+		return false;
+	}
+
+	double disc_root = sqrt(discrim);
+	if (abs(A) < 0) {
+		return false;
+	}
+
+	double lambda1 = ((-B-disc_root)/A);
+	double lambda2 = ((-B+disc_root)/A);
+
+
+	if ((lambda1 < 0) && (lambda2 < 0)) {
+		return false;
+	}
+
+	if  ( ((lambda1 < 0) && (lambda2 > 0)) || ((lambda1 > lambda2) && (lambda2 > 0)) || (lambda1 == lambda2)) {
+		double x = origin[0] + lambda2 * dir[0];
+		double y = origin[1] + lambda2 * dir[1];
+		double z = origin[2] + lambda2 * dir[2];
+
+
+
+		if ((int)y == 1 || (int)y == -1) {
+			return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, false, (int)y);
+		}
+
+		if (y < -1 || y > 1) {
+			return false;
+		}
+		Point3D intersection_point = Point3D(x,y,z);
+		Vector3D ray_normal = Vector3D(2*x, 0, 2*z); // gradient
+
+		if (ray.intersection.none || (lambda2 < ray.intersection.t_value)) {
+			ray.intersection.t_value = lambda2;
+			ray.intersection.point = modelToWorld * intersection_point;
+			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
+			ray.intersection.none = false;
+			return true;
+		}
+	}else if  ( ((lambda2 < 0) && (lambda1 > 0)) || ((lambda2 > lambda1) && (lambda1 > 0)) ) {
+		double x = origin[0] + lambda1 * dir[0];
+		double y = origin[1] + lambda1 * dir[1];
+		double z = origin[2] + lambda1 * dir[2];
+
+		if ((int)y == 1 || (int)y == -1) {
+			return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, false, (int)y);
+		}
+
+		if (y < -1 || y > 1) {
+			return false;
+		}
+
+		Point3D intersection_point = Point3D(x,y,z);
+		Vector3D ray_normal = Vector3D(2*x, 0, 2*z); // gradient
+
+		if (ray.intersection.none || (lambda1 < ray.intersection.t_value)) {
+			ray.intersection.t_value = lambda1;
+			ray.intersection.point = modelToWorld * intersection_point;
+			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
+			ray.intersection.none = false;
+			return true;
+		}
+
+	}
+
+
+	return false;
+
+}
 

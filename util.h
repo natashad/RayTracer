@@ -185,7 +185,6 @@ struct Intersection {
 	double t_value;
 	// Set to true when no intersection has occured.
 	bool none;
-
 };
 
 // Ray structure.
