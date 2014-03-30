@@ -478,12 +478,12 @@ void drawNewScene(int width, int height) {
 	// Defines a material for shading.
 	Material gold( Colour(0.3, 0.3, 0.3), Colour(0.75164, 0.60648, 0.22648),
 			Colour(0.628281, 0.555802, 0.366065),
-			51.2, 0.0, 0 );
+			51.2, 0.7, 0 );
 	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
 			Colour(0.316228, 0.316228, 0.316228),
 			12.8, 0, 0 );
 	Material pink( Colour(0.815, 0.125, 0.56), Colour(0.6, 0.5, 0.5),
-			Colour(0.6, 0.6, 0.6), 30, 0.0, 0.0);
+			Colour(0.6, 0.6, 0.6), 30, 1.0, 0.0);
 	Material blue( Colour(0.27, 0.5, 0.7), Colour(0.6, 0.5, 0.5),
 			Colour(0.316228, 0.316228, 0.316228), 12, 0.0, 0);
 	Material silver( Colour(0.19225,0.19225,0.19225), Colour(0.50754, 0.50754, 0.50754),
@@ -491,7 +491,7 @@ void drawNewScene(int width, int height) {
 	Material chrome( Colour(.25,0.25,0.25), Colour(0.4,0.4,0.4),
 					 Colour(0.774597,0.774597,0.774597), 76.8, 0.0, 0);
 	Material brass ( Colour(0.329412,0.223529,0.027451), Colour(0.780392,0.568627,0.113725),
-					 Colour(0.992157, 0.941176, 0.807843), 27.89743616, 0.0, 0);
+					 Colour(0.992157, 0.941176, 0.807843), 27.89743616, 0.8, 0);
 	// Material white( Colour(0.8,0.7,0.7), Colour(0.5,0.5,0.4), Colour(0.7,0.7,0.04), 10, 0);
 	Material white( Colour(0,0,0), Colour(0.55,0.55,0.55), Colour(0.7,0.7,0.7), 32, 0.0, 0);
 	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
@@ -505,46 +505,86 @@ void drawNewScene(int width, int height) {
 	// Add a unit square into the scene with material mat.
 	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &brass );
 	SceneDagNode* sphere2 = raytracer.addObject( new UnitSphere(), &pink );
-	// SceneDagNode* planeL = raytracer.addObject( new UnitSquare(), &jade );
-	// SceneDagNode* planeR = raytracer.addObject( new UnitSquare(), &jade );
-	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &blue);
-	// SceneDagNode* planeB = raytracer.addObject( new UnitSquare(), &white );
+	SceneDagNode* planeL = raytracer.addObject( new UnitSquare(), &jade );
+	SceneDagNode* planeR = raytracer.addObject( new UnitSquare(), &jade );
+	SceneDagNode* planeBottom = raytracer.addObject( new UnitSquare(), &blue);
+	SceneDagNode* planeBack = raytracer.addObject( new UnitSquare(), &white );
 
 
 	// Apply some transformations to the unit square.
-	double factor1[3] = { 1, 1, 1 };
-	double factor2[3] = { 100.0, 100.0, 100.0 };
+	double factor1[3] = { 0.2, 0.2, 0.2 };
+	double factor2[3] = { 6.0, 6.0, 6.0 };
 	double factor3[3] = { 0.15, 0.15, 0.15 };
 
-	raytracer.translate(sphere1, Vector3D(0.5, 0.5, -8));
+	raytracer.translate(sphere1, Vector3D(0.1, -0.5, -0.2));
+	raytracer.scale(sphere1, Point3D(0, 0, 0), factor1);
 
+	raytracer.translate(sphere2, Vector3D(-0.2, -0.5, -0.7));
+	raytracer.scale(sphere2, Point3D(0, 0, 0), factor3);
 
-	raytracer.translate(sphere2, Vector3D(-1, -0.5, -4));
+	raytracer.translate(planeL, Vector3D(-3, 0, -6));
+	raytracer.rotate(planeL, 'y', 90);
+	raytracer.scale(planeL, Point3D(0, 0, 0), factor2);
 
-	// raytracer.translate(planeL, Vector3D(-3, 0, -6));
-	// raytracer.rotate(planeL, 'y', 90);
-	// raytracer.scale(planeL, Point3D(0, 0, 0), factor2);
+	raytracer.translate(planeR, Vector3D(3, 0, -6));
+	raytracer.rotate(planeR, 'y', -90);
+	raytracer.scale(planeR, Point3D(0, 0, 0), factor2);
 
-	// raytracer.translate(planeR, Vector3D(3, 0, -6));
-	// raytracer.rotate(planeR, 'y', -90);
-	// raytracer.scale(planeR, Point3D(0, 0, 0), factor2);
+	raytracer.translate(planeBottom, Vector3D(0, -3, -6));
+	raytracer.rotate(planeBottom, 'x', 90);
+	raytracer.scale(planeBottom, Point3D(0, 0, 0), factor2);
 
-	raytracer.translate(planeT, Vector3D(0, -3, -50));
-	raytracer.rotate(planeT, 'x', 90);
-	raytracer.scale(planeT, Point3D(0, 0, 0), factor2);
-
-	// raytracer.translate(planeB, Vector3D(0, 0, -9));
-	// raytracer.scale(planeB, Point3D(0, 0, 0), factor2);
+	raytracer.translate(planeBack, Vector3D(0, 0, -9));
+	raytracer.scale(planeBack, Point3D(0, 0, 0), factor2);
 
 
 	// Render the scene, feel free to make the image smaller for
 	// testing purposes.
 	raytracer.render(width, height, eye, view, up, fov, "view3.bmp");
 
-	// // Render it from a different point of view.
-	// Point3D eye2(4, 2, 1);
-	// Vector3D view2(-4, -2, -6);
-	// raytracer.render(width, height, eye2, view2, up, fov, "view3.bmp");
+}
+
+
+void drawDepthScene(int width, int height) {
+	Raytracer raytracer;
+
+	// Camera parameters.
+	Point3D eye(0, 0, 1);
+	Vector3D view(0, 0, -1);
+	Vector3D up(0, 1, 0);
+	double fov = 60;
+
+	// Defines a material for shading.
+	Material pink( Colour(0.815, 0.125, 0.56), Colour(0.6, 0.5, 0.5),
+			Colour(0.6, 0.6, 0.6), 30, 0.0, 0.0);
+	Material blue( Colour(0.27, 0.5, 0.7), Colour(0.6, 0.5, 0.5),
+			Colour(0.316228, 0.316228, 0.316228), 12, 0.0, 0);
+	Material brass ( Colour(0.329412,0.223529,0.027451), Colour(0.780392,0.568627,0.113725),
+					 Colour(0.992157, 0.941176, 0.807843), 27.89743616, 0.0, 0);
+
+	// Defines a point light source.
+	raytracer.addLightSource( new PointLight(Point3D(1,1,3),
+				Colour(0.9, 0.9, 0.9) ) );
+
+	// Add a unit square into the scene with material mat.
+	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &brass );
+	SceneDagNode* sphere2 = raytracer.addObject( new UnitSphere(), &pink );
+	SceneDagNode* planeBottom = raytracer.addObject( new UnitSquare(), &blue);
+
+	raytracer.translate(sphere1, Vector3D(0.5, 0.5, -8));
+
+	raytracer.translate(sphere2, Vector3D(-1, -0.5, -4));
+
+	double factor2[3] = { 100.0, 100.0, 100.0 };
+
+	raytracer.translate(planeBottom, Vector3D(0, -3, -50));
+	raytracer.rotate(planeBottom, 'x', 90);
+	raytracer.scale(planeBottom, Point3D(0, 0, 0), factor2);
+
+	// Render the scene, feel free to make the image smaller for
+	// testing purposes.
+	raytracer.render(width, height, eye, view, up, fov, "depth_of_field.bmp");
+
 }
 
 void drawBasicScene(int width, int height) {
@@ -672,9 +712,10 @@ int main(int argc, char* argv[])
 	}
 
 	drawOriginalScene(width, height);
-	// drawNewScene(width, height);
-	// drawBasicScene(width, height);
-	drawCylinderScene(width, height);
+	drawNewScene(width, height);
+	// drawDepthScene(width, height);
+	drawBasicScene(width, height);
+	// drawCylinderScene(width, height);
 
 
 	return 0;

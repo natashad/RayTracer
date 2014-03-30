@@ -20,7 +20,7 @@ const bool REFLECTION_ON = true;
 const bool ANTIALIAS_ON = false;
 // Note: Refraction does not work.
 const bool REFRACTION_ON = false;
-const bool SHADOWS_ON = true;
+const bool SHADOWS_ON = false;
 const bool GLOSSY_REFLECTION_ON = false;
 const bool DOF_ON = false;
 
