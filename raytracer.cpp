@@ -270,25 +270,26 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 		reflectionRay.origin = ray.intersection.point;
 		reflectionRay.origin = reflectionRay.origin + 0.01*reflectionRay.dir;
 
-		if (REFLECTION_ON && ray.intersection.mat->damp_factor > 0) {
+		if ((GLOSSY_REFLECTION_ON || REFLECTION_ON) && ray.intersection.mat->damp_factor > 0) {
 			if (!GLOSSY_REFLECTION_ON) {
 				col = col + ray.intersection.mat->damp_factor*shadeRay(reflectionRay, depth+1);
 				col.clamp();
 			} else {
 
-				double numSamples = 3;
+				double numSamples = 4;
 				for (int x = 0; x < numSamples; x++) {
 
-						double x_diff = ((((double)rand() / (double)RAND_MAX)/3) - 1) * 0.05;
-						double y_diff = ((((double)rand() / (double)RAND_MAX)/3) - 1) * 0.05;
+						double x_diff = ((((double)rand() / (double)RAND_MAX)*3) - 1) * 0.005;
+						double y_diff = ((((double)rand() / (double)RAND_MAX)*3) - 1) * 0.005;
+						double z_diff = ((((double)rand() / (double)RAND_MAX)*3) - 1) * 0.005;
+
 
 						Point3D new_origin = reflectionRay.origin;
 						new_origin[0] += x_diff;
 						new_origin[1] += y_diff;
+						new_origin[2] += z_diff;
 						Ray3D newRay(new_origin + 0.01*reflectionRay.dir, reflectionRay.dir);
 						col = col + ray.intersection.mat->damp_factor*shadeRay(newRay, depth+1);
-						col.clamp();
-
 				}
 
 				col = (1.0/(numSamples))*col;
@@ -309,7 +310,6 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 			// then we're going from meterial to air
 			c1byc2 = 1/c1byc2;
 		}
-
 
 		double costheta2 = -rayNormal.dot(rayDir);
 		double sintheta2 = sqrt(1 - (costheta2*costheta2));
@@ -428,9 +428,7 @@ void drawOriginalScene(int width, int height) {
 	Material gold( Colour(0.3, 0.3, 0.3), Colour(0.75164, 0.60648, 0.22648),
 			Colour(0.628281, 0.555802, 0.366065),
 			51.2, 1.0, 0);
-	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
-			Colour(0, 0, 0),
-			51.2, 1.0, 0);
+
 	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
 			Colour(0.316228, 0.316228, 0.316228),
 			12.8, 0.0, 0 );
@@ -559,8 +557,8 @@ void drawBasicScene(int width, int height) {
 	double fov = 60;
 
 	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
-			Colour(0, 0, 0),
-			12, 1.0, 1.5);
+			Colour(0.2, 0.2, 0.2),
+			12, 0.5, 1.5);
 	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
 			Colour(0.316228, 0.316228, 0.316228),
 			12.8, 0, 0);
@@ -581,8 +579,8 @@ void drawBasicScene(int width, int height) {
 				Colour(0.9, 0.9, 0.9) ) );
 
 	// Add a unit square into the scene with material mat.
-	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &silver );
-	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &checkerBoard );
+	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &black );
+	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &jade );
 
 	raytracer.rotate(planeT, 'x', -80);
 	raytracer.translate(planeT, Vector3D(0, 0, 0));
@@ -659,8 +657,11 @@ int main(int argc, char* argv[])
 	// int width = 160;
 	// int height = 120;
 
-	int width = 640;
-	int height = 480;
+	int width = 320;
+	int height = 240;
+
+	// int width = 640;
+	// int height = 480;
 
 	// int width = 1920;
 	// int height = 1080;
@@ -670,10 +671,10 @@ int main(int argc, char* argv[])
 		height = atoi(argv[2]);
 	}
 
-	// drawOriginalScene(width, height);
+	drawOriginalScene(width, height);
 	// drawNewScene(width, height);
 	// drawBasicScene(width, height);
-	drawCylinderScene(width, height);
+	// drawCylinderScene(width, height);
 
 
 	return 0;
