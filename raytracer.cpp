@@ -674,7 +674,7 @@ int main(int argc, char* argv[])
 	drawOriginalScene(width, height);
 	// drawNewScene(width, height);
 	// drawBasicScene(width, height);
-	// drawCylinderScene(width, height);
+	drawCylinderScene(width, height);
 
 
 	return 0;

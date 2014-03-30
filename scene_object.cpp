@@ -34,68 +34,83 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	Point3D origin = worldToModel * ray.origin;
 	Vector3D dir = worldToModel * ray.dir;
 
-	return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, true, 0);
-
-}
-
-bool doPlaneIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
-		const Matrix4x4& modelToWorld, Point3D o, Vector3D d, bool alongz, int plane_intersection_val) {
-
-	Point3D origin = o;
-	Vector3D dir = d;
 	ray.intersection.untransformedPoint = Point3D(0,0,0);
-
-	// the other axis on the x-? plane. In this case y.
-	int axis = 1;
-	// the axis we are going along
-	int plane_axis = 2;
 
 	Vector3D ray_normal = Vector3D(0, 0, 1);
 
-	// if not along z-axis
-	if (!alongz) {
-		// then we are going along the y-axis
-		axis = 2;
-		plane_axis = 1;
-		ray_normal = Vector3D(0, 1, 0);
-	}
-
-	double t = (plane_intersection_val - origin[plane_axis])/dir[plane_axis];
+	double t = -origin[2]/dir[2];
 
 	if (t <= 0){
 		// the intersection must occur in the given directions
 		return false;
 	}
 	double x = origin[0] + t * dir[0];
-	double y = origin[axis] + t * dir[axis];
-	Point3D intersectionPoint = Point3D(x,y,plane_intersection_val);
-	if (!alongz) {
-		intersectionPoint = Point3D(x,plane_intersection_val,y);
-	}
+	double y = origin[1] + t * dir[1];
+	Point3D intersectionPoint = Point3D(x,y,0);
+
 	ray.intersection.untransformedPoint = intersectionPoint;
 
 	//Intersecion
-	if ((alongz && ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))) ||
-		(!alongz && (x*x + y*y <= 1))) {
+	if ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5)) {
 
-		// if we are going along the y axis, then this is a call from the
-		// sphere code and we need to check if x and y are in a unit circle on
-		// the plane, else along z-axis check unit square.
+		if (ray.intersection.none || (t < ray.intersection.t_value))
 
-			if (ray.intersection.none || (t < ray.intersection.t_value))
-
-			{
-				ray.intersection.t_value = t;
-				ray.intersection.point = modelToWorld * intersectionPoint;
-				ray.intersection.normal = transNorm(worldToModel, ray_normal);
-				ray.intersection.normal.normalize();
-				ray.intersection.none = false;
-				return true;
-			}
+		{
+			ray.intersection.t_value = t;
+			ray.intersection.point = modelToWorld * intersectionPoint;
+			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
+			ray.intersection.none = false;
+			return true;
+		}
 
 	}
 
 	return false;
+
+}
+
+
+//Circle intersection on x-z plane at y = plane_intersection_val.
+bool circleIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
+		const Matrix4x4& modelToWorld, int plane_intersection_val) {
+
+	Point3D origin = worldToModel * ray.origin;
+	Vector3D dir = worldToModel * ray.dir;
+
+	ray.intersection.untransformedPoint = Point3D(0,0,0);
+
+	Vector3D ray_normal = Vector3D(0, 1, 0);
+
+	double t = (plane_intersection_val - origin[1])/dir[1];
+
+	if (t <= 0){
+		// the intersection must occur in the given directions
+		return false;
+	}
+
+	double x = origin[0] + t * dir[0];
+	double z = origin[2] + t * dir[2];
+	Point3D intersectionPoint = Point3D(x,plane_intersection_val,z);
+
+	//Intersecion
+	if ( x*x + z*z <= 1 ) {
+
+		if (ray.intersection.none || (t < ray.intersection.t_value))
+
+		{
+			ray.intersection.t_value = t;
+			ray.intersection.point = modelToWorld * intersectionPoint;
+			ray.intersection.normal = transNorm(worldToModel, ray_normal);
+			ray.intersection.normal.normalize();
+			ray.intersection.none = false;
+			return true;
+		}
+
+	}
+
+	return false;
+
 }
 
 bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
@@ -210,7 +225,7 @@ bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 
 		if ((int)y == 1 || (int)y == -1) {
-			return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, false, (int)y);
+			return circleIntersection(ray, worldToModel, modelToWorld, (int)y);
 		}
 
 		if (y < -1 || y > 1) {
@@ -233,7 +248,7 @@ bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 		double z = origin[2] + lambda1 * dir[2];
 
 		if ((int)y == 1 || (int)y == -1) {
-			return doPlaneIntersection(ray, worldToModel, modelToWorld, origin, dir, false, (int)y);
+			return circleIntersection(ray, worldToModel, modelToWorld, (int)y);
 		}
 
 		if (y < -1 || y > 1) {
