@@ -45,11 +45,16 @@ bool doPlaneIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
 	Vector3D dir = d;
 	ray.intersection.untransformedPoint = Point3D(0,0,0);
 
+	// the other axis on the x-? plane. In this case y.
 	int axis = 1;
+	// the axis we are going along
 	int plane_axis = 2;
+
 	Vector3D ray_normal = Vector3D(0, 0, 1);
 
+	// if not along z-axis
 	if (!alongz) {
+		// then we are going along the y-axis
 		axis = 2;
 		plane_axis = 1;
 		ray_normal = Vector3D(0, 1, 0);
@@ -72,6 +77,10 @@ bool doPlaneIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
 	//Intersecion
 	if ((alongz && ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))) ||
 		(!alongz && (x*x + y*y <= 1))) {
+
+		// if we are going along the y axis, then this is a call from the
+		// sphere code and we need to check if x and y are in a unit circle on
+		// the plane, else along z-axis check unit square.
 
 			if (ray.intersection.none || (t < ray.intersection.t_value))
 
