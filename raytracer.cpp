@@ -276,23 +276,22 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 				col.clamp();
 			} else {
 
-				double numSamples = 4;
+				double numSamples = 3;
 				for (int x = 0; x < numSamples; x++) {
-					for (int y = 0; y < numSamples; y++) {
-						double distx = (x+ 1.0*rand()/RAND_MAX)/numSamples;
-						double disty = (y+ 1.0*rand()/RAND_MAX)/numSamples;
+
+						double x_diff = ((((double)rand() / (double)RAND_MAX)/3) - 1) * 0.05;
+						double y_diff = ((((double)rand() / (double)RAND_MAX)/3) - 1) * 0.05;
 
 						Point3D new_origin = reflectionRay.origin;
-						new_origin[0] += distx/50;
-						new_origin[1] += disty/50;
+						new_origin[0] += x_diff;
+						new_origin[1] += y_diff;
 						Ray3D newRay(new_origin + 0.01*reflectionRay.dir, reflectionRay.dir);
 						col = col + ray.intersection.mat->damp_factor*shadeRay(newRay, depth+1);
 						col.clamp();
-					}
 
 				}
 
-				col = (1.0/(numSamples*numSamples))*col;
+				col = (1.0/(numSamples))*col;
 				col.clamp();
 
 			}
@@ -306,11 +305,9 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 		double c2 = ray.intersection.mat->ref_index;
 		double c1byc2 = c1/(c2*1.0);
 
-		bool in = false;
 		if (depth % 2 == 1) {
 			// then we're going from meterial to air
 			c1byc2 = 1/c1byc2;
-			in = true;
 		}
 
 
@@ -321,7 +318,7 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 
 		double cosT2 = 1 - c1byc2*c1byc2*sintheta2*sintheta2;
 
-		bool tir = c1byc2 ==sintheta1;
+		bool tir = c1byc2 == sintheta1;
 
 
 		if (REFRACTION_ON) {
@@ -331,27 +328,6 @@ Colour Raytracer::shadeRay( Ray3D& ray, int depth ) {
 			refractionRay.origin = ray.intersection.point + 0.01*refractionRay.dir;
 			col = col + shadeRay(refractionRay, depth + 1);
 			col.clamp();
-
-
-			// std::cout << "Orig Dir: " << rayDir << std::endl;
-			// std::cout << "Orig Origin: " << rayNormal << std::endl;
-			// std::cout << "Ref Dir: " << refractionRay.dir << std::endl;
-			// std::cout << "Ref Origin: " << refractionRay.origin << std::endl;
-			// std::cout << "cosI: " << costheta2 << std::endl;
-			// std::cout << "sinI: " << sintheta2 << std::endl;
-			// std::cout << "cosR: " << costheta1 << std::endl;
-			// std::cout << "sinR: " << sintheta1 << std::endl;
-			// std::cout << "c1/c2: " << c1byc2 << std::endl;
-			// std::cout << "Calc: " << sintheta1/sintheta2 << std::endl;
-			// std::cout << " ----------------- \n" << std::endl;
-
-			// if (in) {
-			// 	std::cout << "Depth: " << depth << std::endl;
-			// 	std::cout << "In object, going out" << std::endl;
-			// } else {
-			// 	std::cout << "Depth: " << depth << std::endl;
-			// 	std::cout << "Out object, going in" << std::endl;
-			// }
 		}
 
 		/* Refraction Code ends here */
@@ -372,7 +348,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	initPixelBuffer();
 	viewToWorld = initInvViewMatrix(eye, view, up);
 
-	double numSamples = ANTIALIAS_ON? 2 : 1;
+	double numSamples = ANTIALIAS_ON? 4 : 1;
 
 	double focal_length =  10;
 
@@ -410,7 +386,8 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 					if(DOF_ON) {
 						Point3D focal_point = ray.origin + (focal_length * ray.dir);
 						ray.origin = ray.origin + Vector3D(((((double)rand() / (double)RAND_MAX)*3) - 1)*0.05,
-															((((double)rand() / (double)RAND_MAX)*3) - 1)*0.05,((((double)rand() / (double)RAND_MAX)*3) - 1)*0.05);
+															((((double)rand() / (double)RAND_MAX)*3) - 1)*0.05,
+															((((double)rand() / (double)RAND_MAX)*3) - 1)*0.05);
 						ray.dir = focal_point - ray.origin;
 
 
@@ -583,7 +560,7 @@ void drawBasicScene(int width, int height) {
 
 	Material black( Colour(0, 0, 0), Colour(0, 0, 0),
 			Colour(0, 0, 0),
-			12, 0.8, 1.5);
+			12, 1.0, 1.5);
 	Material jade( Colour(0, 0, 0), Colour(0.54, 0.89, 0.63),
 			Colour(0.316228, 0.316228, 0.316228),
 			12.8, 0, 0);
@@ -593,10 +570,8 @@ void drawBasicScene(int width, int height) {
 			Colour(0, 0, 0), Colour(0.5, 0, 1.0),
 			Colour(0.7, 0.6, 0.6),
 			32, 0, 0  );
-
-
 	Material silver( Colour(0.19225,0.19225,0.19225), Colour(0.50754, 0.50754, 0.50754),
-					Colour(0.508273, 0.508273, 0.508273), 51.2, 0.0, 1.5);
+					Colour(0.508273, 0.508273, 0.508273), 51.2, 1.0, 1.5);
 
 	double factor2[3] = { 6.0, 6.0, 6.0 };
 	double factor3[3] = { 0.15, 0.15, 0.15 };
@@ -606,7 +581,7 @@ void drawBasicScene(int width, int height) {
 				Colour(0.9, 0.9, 0.9) ) );
 
 	// Add a unit square into the scene with material mat.
-	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &black );
+	SceneDagNode* sphere1 = raytracer.addObject( new UnitSphere(), &silver );
 	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &checkerBoard );
 
 	raytracer.rotate(planeT, 'x', -80);
@@ -650,28 +625,24 @@ void drawCylinderScene(int width, int height) {
 					Colour(0.508273, 0.508273, 0.508273), 51.2, 0.8, 1.5);
 
 	double factor2[3] = { 6.0, 6.0, 6.0 };
-	double factor3[3] = { 1, 3,1};
+	double factor3[3] = { 0.5, 1.0, 0.5};
 
 	// Defines a point light source.
 	raytracer.addLightSource( new PointLight(Point3D(1, 3, 3),
 				Colour(0.9, 0.9, 0.9) ) );
 
 	// Add a unit square into the scene with material mat.
-	SceneDagNode* cylinder = raytracer.addObject( new UnitCylinder(), &silver);
-	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &checkerBoard );
+	SceneDagNode* cylinder = raytracer.addObject( new UnitCylinder(), &jade);
+	SceneDagNode* planeT = raytracer.addObject( new UnitSquare(), &silver );
 
 	raytracer.rotate(planeT, 'x', -80);
-	raytracer.translate(planeT, Vector3D(0, 0, 0));
+	raytracer.translate(planeT, Vector3D(0, 0, -0.8));
 	raytracer.scale(planeT, Point3D(0, 0, 0), factor2);
 
-	raytracer.translate(cylinder, Vector3D(0, 1.0, -5));
-	// raytracer.rotate(cylinder, 'y', 45);
-	// raytracer.rotate(cylinder, 'x', -90);
-	raytracer.scale(cylinder, Point3D(0, 0, 0), factor3);
-
-	// Point3D eye2(4, 2, 1);
-	// Vector3D view2(-4, -2, -6);
-	// raytracer.render(width, height, eye2, view2, up, fov, "cylinder.bmp");
+	raytracer.translate(cylinder, Vector3D(0, 0, -2.5));
+	raytracer.rotate(cylinder, 'y', 45);
+	raytracer.rotate(cylinder, 'x', 90);
+	raytracer.scale(cylinder, Point3D(0, 0.3, 0), factor3);
 
 	raytracer.render(width, height, eye, view, up, fov, "cylinder.bmp");
 
@@ -685,17 +656,23 @@ int main(int argc, char* argv[])
 	// scene and renders it from two different view points, DO NOT
 	// change this if you're just implementing part one of the
 	// assignment.
-	int width = 320;
-	int height = 240;
+	// int width = 160;
+	// int height = 120;
+
+	int width = 640;
+	int height = 480;
+
+	// int width = 1920;
+	// int height = 1080;
 
 	if (argc == 3) {
 		width = atoi(argv[1]);
 		height = atoi(argv[2]);
 	}
 
-	drawOriginalScene(width, height);
-	drawNewScene(width, height);
-	drawBasicScene(width, height);
+	// drawOriginalScene(width, height);
+	// drawNewScene(width, height);
+	// drawBasicScene(width, height);
 	drawCylinderScene(width, height);
 
 

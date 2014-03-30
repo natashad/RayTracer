@@ -71,7 +71,7 @@ bool doPlaneIntersection(Ray3D& ray, const Matrix4x4& worldToModel,
 
 	//Intersecion
 	if ((alongz && ((x <= 0.5) && (x >= -0.5) && (y <= 0.5) && (y >= -0.5))) ||
-		(!alongz && x*x + y*y <= 1)) {
+		(!alongz && (x*x + y*y <= 1))) {
 
 			if (ray.intersection.none || (t < ray.intersection.t_value))
 
